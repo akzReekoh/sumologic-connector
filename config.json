@@ -1,0 +1,8 @@
+{
+  "http_source": {
+    "label": "HTTP Source",
+    "type": "String",
+    "required": true,
+    "help": "Please provide the http source(URL) issued by Sumologic."
+  }
+}
