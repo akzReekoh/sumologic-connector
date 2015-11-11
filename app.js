@@ -9,16 +9,14 @@ var platform = require('./platform'),
  * Listen for the data event.
  */
 platform.on('data', function (data) {
-    if(!isJSON(data))
+    if(isJSON(data, true))
         data = JSON.stringify(data);
 
     request.post({
         url: httpSource,
         body:data
     }, function(error, response, body){
-        if(!error) return;
-
-        platform.handleException(error);
+        if(error) platform.handleException(error);
     });
 });
 
