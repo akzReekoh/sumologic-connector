@@ -17,6 +17,12 @@ platform.on('data', function (data) {
         body:data
     }, function(error, response, body){
         if(error) platform.handleException(error);
+        else{
+            platform.log(JSON.stringify({
+                title: 'Data saved to Sumologic.',
+                data: data
+            }));
+        }
     });
 });
 
