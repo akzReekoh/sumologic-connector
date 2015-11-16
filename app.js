@@ -19,7 +19,7 @@ platform.on('data', function (data) {
 		request.post({
 			url: httpSource,
 			body: data
-		}, function (error, response, body) {
+		}, function (error) {
 			if (error)
 				platform.handleException(error);
 			else {
