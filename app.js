@@ -2,27 +2,33 @@
 
 var platform = require('./platform'),
     request = require('request'),
-    isJSON = require('is-json'),
 	httpSource;
 
 /*
  * Listen for the data event.
  */
 platform.on('data', function (data) {
-    if(isJSON(data, true))
-        data = JSON.stringify(data);
+    var domain = require('domain'),
+        d = domain.create();
 
-    request.post({
-        url: httpSource,
-        body:data
-    }, function(error, response, body){
-        if(error) platform.handleException(error);
-        else{
-            platform.log(JSON.stringify({
-                title: 'Data saved to Sumologic.',
-                data: data
-            }));
-        }
+    d.on('error', function(error){
+        platform.handleException(error);
+    });
+
+    d.run(function () {
+        request.post({
+            url: httpSource,
+            body: data
+        }, function(error, response, body){
+            if(error) platform.handleException(error);
+            else{
+                platform.log(JSON.stringify({
+                    title: 'Data saved to Sumologic.',
+                    data: data
+                }));
+            }
+        });
+        d.exit();
     });
 });
 
