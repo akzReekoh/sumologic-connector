@@ -1,24 +1,19 @@
 'use strict';
 
-var domain   = require('domain'),
-	request  = require('request'),
+var
+	request       = require('request'),
 	platform = require('./platform'),
+	isPlainObject = require('lodash.isplainobject'),
 	httpSource;
 
 /*
  * Listen for the data event.
  */
 platform.on('data', function (data) {
-	var d = domain.create();
-
-	d.once('error', function (error) {
-		platform.handleException(error);
-	});
-
-	d.run(function () {
+	if (isPlainObject(data)) {
 		request.post({
 			url: httpSource,
-			body: data
+			body: JSON.stringify(data)
 		}, function (error) {
 			if (error)
 				platform.handleException(error);
@@ -28,10 +23,10 @@ platform.on('data', function (data) {
 					data: data
 				}));
 			}
-
-			d.exit();
 		});
-	});
+	}
+	else
+		platform.handleException(new Error('Invalid data received. Must be a valid JSON Object. Data: ' + data));
 });
 
 /*
