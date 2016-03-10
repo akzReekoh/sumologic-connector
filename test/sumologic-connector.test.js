@@ -9,9 +9,12 @@ var cp     = require('child_process'),
 describe('Connector', function () {
 	this.slow(5000);
 
-	after('terminate child process', function () {
+	after('terminate child process', function (done) {
+		this.timeout(7000);
+
         setTimeout(function(){
             connector.kill('SIGKILL');
+			done();
         },5000);
 	});
 
@@ -66,4 +69,22 @@ describe('Connector', function () {
             }, done);
         });
     });
+
+	describe('#data', function (done) {
+		it('should process the Array data', function () {
+			connector.send({
+				type: 'data',
+				data: [
+					{
+						title:'Test message',
+						message:'This is a test JSON message from Sumologic Connector.'
+					},
+					{
+						title:'Test message',
+						message:'This is a test JSON message from Sumologic Connector.'
+					}
+				]
+			}, done);
+		});
+	});
 });
