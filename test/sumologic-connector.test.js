@@ -1,90 +1,59 @@
-'use strict';
+'use strict'
 
-const HTTP_SOURCE = 'https://endpoint1.collection.us2.sumologic.com/receiver/v1/http/ZaVnC4dhaV2Go4vCe8vI_ksTgTInUF3ya_0v7vQ7RrTo3qbbA08VxSaJAM1XQe_lnTSbvB460lfPKJPOgD-xQo14-uLkRg9C6V4rwdkNKbMWOMxUzfmsoQ==';
+const amqp = require('amqplib')
 
-var cp     = require('child_process'),
-	assert = require('assert'),
-	connector;
+const HTTP_SOURCE = 'https://endpoint1.collection.us2.sumologic.com/receiver/v1/http/ZaVnC4dhaV2Go4vCe8vI_ksTgTInUF3ya_0v7vQ7RrTo3qbbA08VxSaJAM1XQe_lnTSbvB460lfPKJPOgD-xQo14-uLkRg9C6V4rwdkNKbMWOMxUzfmsoQ=='
 
-describe('Connector', function () {
-	this.slow(5000);
+let _channel = null
+let _conn = null
+let app = null
 
-	after('terminate child process', function (done) {
-		this.timeout(7000);
+describe('SumoLogic Connector Test', () => {
+  before('init', () => {
+    process.env.ACCOUNT = 'adinglasan'
+    process.env.CONFIG = JSON.stringify({
+      httpSource: HTTP_SOURCE
+    })
+    process.env.INPUT_PIPE = 'ip.sumologic'
+    process.env.LOGGERS = 'logger1, logger2'
+    process.env.EXCEPTION_LOGGERS = 'ex.logger1, ex.logger2'
+    process.env.BROKER = 'amqp://guest:guest@127.0.0.1/'
 
-        setTimeout(function(){
-            connector.kill('SIGKILL');
-			done();
-        },5000);
-	});
+    amqp.connect(process.env.BROKER)
+      .then((conn) => {
+        _conn = conn
+        return conn.createChannel()
+      }).then((channel) => {
+      _channel = channel
+    }).catch((err) => {
+      console.log(err)
+    })
+  })
 
-	describe('#spawn', function () {
-		it('should spawn a child process', function () {
-			assert.ok(connector = cp.fork(process.cwd()), 'Child process not spawned.');
-		});
-	});
+  after('close connection', function (done) {
+    _conn.close()
+    done()
+  })
 
-	describe('#handShake', function () {
-		it('should notify the parent process when ready within 5 seconds', function (done) {
-			this.timeout(5000);
+  describe('#start', function () {
+    it('should start the app', function (done) {
+      this.timeout(10000)
+      app = require('../app')
+      app.once('init', done)
+    })
+  })
 
-			connector.on('message', function (message) {
-				if (message.type === 'ready')
-					done();
-			});
+  describe('#data', () => {
+    it('should send data to third party client', function (done) {
+      this.timeout(15000)
 
-			connector.send({
-				type: 'ready',
-				data: {
-					options: {
-						http_source: HTTP_SOURCE
-					}
-				}
-			}, function (error) {
-				assert.ifError(error);
-			});
-		});
-	});
+      let data = {
+        title:'Test message',
+        message:'This is a test JSON message from Sumologic Connector.'
+      }
 
-	describe('#data', function (done) {
-		it('should process the String data', function () {
-			connector.send({
-				type: 'data',
-				data: JSON.stringify({
-                    title:'Test message',
-                    message:'This is a test String message from Sumologic Connector.'
-				})
-			}, done);
-		});
-	});
-
-    describe('#data', function (done) {
-        it('should process the JSON data', function () {
-            connector.send({
-                type: 'data',
-                data: {
-                    title:'Test message',
-                    message:'This is a test JSON message from Sumologic Connector.'
-                }
-            }, done);
-        });
-    });
-
-	describe('#data', function (done) {
-		it('should process the Array data', function () {
-			connector.send({
-				type: 'data',
-				data: [
-					{
-						title:'Test message',
-						message:'This is a test JSON message from Sumologic Connector.'
-					},
-					{
-						title:'Test message',
-						message:'This is a test JSON message from Sumologic Connector.'
-					}
-				]
-			}, done);
-		});
-	});
-});
+      _channel.sendToQueue('ip.sumologic', new Buffer(JSON.stringify(data)))
+      setTimeout(done, 10000)
+    })
+  })
+})
